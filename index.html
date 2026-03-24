@@ -49,7 +49,6 @@
             z-index: 100;
         }
         
-        /* New container for Score and Time */
         .stats-container {
             display: flex;
             gap: 20px; 
@@ -221,10 +220,11 @@
     </div>
 
     <script>
+        // Added 'ण' to Level 2 right after 'ढ'
         const alphabet = [
             {char: 'क', lvl: 1}, {char: 'ख', lvl: 2}, {char: 'ग', lvl: 1}, {char: 'घ', lvl: 2}, 
             {char: 'च', lvl: 1}, {char: 'छ', lvl: 2}, {char: 'ज', lvl: 1}, {char: 'झ', lvl: 2}, 
-            {char: 'ट', lvl: 1}, {char: 'ठ', lvl: 2}, {char: 'ड', lvl: 1}, {char: 'ढ', lvl: 2}, 
+            {char: 'ट', lvl: 1}, {char: 'ठ', lvl: 2}, {char: 'ड', lvl: 1}, {char: 'ढ', lvl: 2}, {char: 'ण', lvl: 2},
             {char: 'त', lvl: 1}, {char: 'थ', lvl: 2}, {char: 'द', lvl: 1}, {char: 'ध', lvl: 2}, {char: 'न', lvl: 1}, 
             {char: 'प', lvl: 1}, {char: 'फ', lvl: 2}, {char: 'ब', lvl: 1}, {char: 'भ', lvl: 2}, {char: 'म', lvl: 1}, 
             {char: 'य', lvl: 1}, {char: 'र', lvl: 1}, {char: 'ल', lvl: 1}, {char: 'व', lvl: 1}, 
@@ -249,31 +249,27 @@
         ];
 
         let score = 0;
-        
-        // Timer Variables
         let timerInterval;
         let elapsedSeconds = 0;
 
         function initGame() {
             buildBin();
             buildGrid();
-            startTimer(); // Start the clock when game loads
+            startTimer(); 
         }
 
-        // --- TIMER FUNCTION ---
         function startTimer() {
             timerInterval = setInterval(() => {
                 elapsedSeconds++;
                 let minutes = Math.floor(elapsedSeconds / 60);
                 let seconds = elapsedSeconds % 60;
                 
-                // Format to MM:SS
                 let formattedTime = 
                     (minutes < 10 ? "0" + minutes : minutes) + ":" + 
                     (seconds < 10 ? "0" + seconds : seconds);
                     
                 document.getElementById('timer').textContent = formattedTime;
-            }, 1000); // Updates every 1000 milliseconds (1 second)
+            }, 1000); 
         }
 
         function buildBin() {
@@ -365,9 +361,9 @@
             if (draggedVal === cell.dataset.targetToken) {
                 cell.textContent = cell.dataset.targetVyanjan + draggedMatra;
                 cell.classList.add('locked', 'animate-pop');
-                updateScore(2); // SCORING: +2 for correct
+                updateScore(2); 
             } else {
-                updateScore(-1); // SCORING: -1 for incorrect
+                updateScore(-1); 
                 visualError(cell);
             }
         }
