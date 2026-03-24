@@ -48,8 +48,15 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             z-index: 100;
         }
+        
+        /* New container for Score and Time */
+        .stats-container {
+            display: flex;
+            gap: 20px; 
+        }
 
         .stat { font-size: 1.2rem; font-weight: bold; color: var(--text-dark); }
+        .stat span { color: var(--primary); }
         
         button {
             padding: 10px 20px;
@@ -122,7 +129,6 @@
 
         .grid-table {
             display: grid;
-            /* Changed to exactly 13 columns. No extra row-label column! */
             grid-template-columns: repeat(13, 60px); 
             gap: 5px;
             padding-bottom: 50px; 
@@ -157,7 +163,6 @@
             transition: all 0.2s ease;
         }
 
-        /* Styling for the automatically filled 'A' column */
         .drop-zone.base-letter {
             background-color: #dfe6e9;
             border: 2px solid #bdc3c7;
@@ -197,7 +202,10 @@
 <body>
 
     <div id="top-bar">
-        <div class="stat">Points: <span id="score">0</span></div>
+        <div class="stats-container">
+            <div class="stat">Points: <span id="score">0</span></div>
+            <div class="stat">Time: <span id="timer">00:00</span></div>
+        </div>
         <button id="btn-level2" onclick="startLevel2()">Start Level 2 (Deergha)</button>
     </div>
 
@@ -241,20 +249,40 @@
         ];
 
         let score = 0;
+        
+        // Timer Variables
+        let timerInterval;
+        let elapsedSeconds = 0;
 
         function initGame() {
             buildBin();
             buildGrid();
+            startTimer(); // Start the clock when game loads
+        }
+
+        // --- TIMER FUNCTION ---
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                elapsedSeconds++;
+                let minutes = Math.floor(elapsedSeconds / 60);
+                let seconds = elapsedSeconds % 60;
+                
+                // Format to MM:SS
+                let formattedTime = 
+                    (minutes < 10 ? "0" + minutes : minutes) + ":" + 
+                    (seconds < 10 ? "0" + seconds : seconds);
+                    
+                document.getElementById('timer').textContent = formattedTime;
+            }, 1000); // Updates every 1000 milliseconds (1 second)
         }
 
         function buildBin() {
             const mBin = document.getElementById('matra-bin');
             
             if (mBin.children.length === 1) { 
-                // 1. Filter out the 'अ' token so it isn't draggable
                 let draggableMatras = swaras.filter(s => s.swar !== 'अ');
                 
-                // 2. Shuffle the array randomly!
+                // Shuffle the array randomly
                 draggableMatras.sort(() => Math.random() - 0.5);
 
                 draggableMatras.forEach(s => {
@@ -289,12 +317,10 @@
                     let cell = document.createElement('div');
                     cell.className = `drop-zone ${rowClass}`;
                     
-                    // NEW: If it's the 'A' column, pre-fill it and lock it
                     if (s.swar === 'अ') {
                         cell.textContent = item.char;
-                        cell.classList.add('base-letter', 'locked'); // Pre-filled
+                        cell.classList.add('base-letter', 'locked');
                     } else {
-                        // Otherwise, make it a drop zone
                         cell.dataset.targetVyanjan = item.char; 
                         cell.dataset.targetToken = s.token;
                         cell.dataset.targetMatra = s.matra; 
@@ -339,9 +365,9 @@
             if (draggedVal === cell.dataset.targetToken) {
                 cell.textContent = cell.dataset.targetVyanjan + draggedMatra;
                 cell.classList.add('locked', 'animate-pop');
-                updateScore(10);
+                updateScore(2); // SCORING: +2 for correct
             } else {
-                updateScore(-2);
+                updateScore(-1); // SCORING: -1 for incorrect
                 visualError(cell);
             }
         }
