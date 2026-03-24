@@ -7,7 +7,6 @@
     
     <script src="https://unpkg.com/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
     <script>
-        // Initialize the touch polyfill
         MobileDragDrop.polyfill({
             dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
         });
@@ -27,7 +26,7 @@
         * {
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            touch-action: pan-y; /* Allows vertical scrolling but prevents touch-zoom */
+            touch-action: pan-y;
         }
 
         body {
@@ -40,7 +39,6 @@
             overflow: hidden;
         }
 
-        /* Top Bar: Stats & Controls */
         #top-bar {
             background-color: #fff;
             padding: 10px 20px;
@@ -66,14 +64,13 @@
         }
         button:hover { background-color: #357abd; }
 
-        /* Bins Section */
         #bins-container {
             display: flex;
             flex-direction: column;
             gap: 10px;
             padding: 10px;
             background-color: #e9ecef;
-            flex-shrink: 0; /* Keeps bins from shrinking */
+            flex-shrink: 0;
             z-index: 90;
         }
 
@@ -86,6 +83,7 @@
             border-radius: 8px;
             box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
             min-height: 60px;
+            justify-content: center;
         }
 
         .bin-title {
@@ -94,18 +92,19 @@
             color: #7f8c8d;
             margin-bottom: 5px;
             font-weight: bold;
+            text-align: center;
         }
 
         .draggable {
-            width: 45px;
-            height: 45px;
+            width: 50px;
+            height: 50px;
             display: flex;
             justify-content: center;
             align-items: center;
             background-color: white;
             border: 2px solid var(--primary);
             border-radius: 5px;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: bold;
             cursor: grab;
             color: var(--text-dark);
@@ -114,7 +113,6 @@
         }
         .draggable:active { cursor: grabbing; opacity: 0.7; }
 
-        /* Grid Section */
         #grid-wrapper {
             flex-grow: 1;
             overflow: auto;
@@ -124,12 +122,12 @@
 
         .grid-table {
             display: grid;
-            grid-template-columns: 60px repeat(13, 60px); /* 1 Label col + 13 Matra cols */
+            grid-template-columns: 60px repeat(13, 60px); 
             gap: 5px;
-            padding-bottom: 50px; /* Space for scrolling */
+            padding-bottom: 50px; 
+            justify-content: center; /* Centers the grid on large screens */
         }
 
-        /* The Sticky Swar Header */
         .swar-header {
             position: sticky;
             top: 0;
@@ -144,7 +142,6 @@
         }
         .header-spacer { position: sticky; top: 0; background: var(--bg-color); z-index: 10; border-bottom: 3px solid var(--text-dark); }
 
-        /* Row Layout */
         .row-label {
             display: flex;
             justify-content: center;
@@ -177,12 +174,6 @@
             transform: scale(1.05);
         }
 
-        .drop-zone.has-vyanjan {
-            border-style: solid;
-            border-color: var(--primary);
-            background-color: #f1f8ff;
-        }
-
         .drop-zone.locked {
             border-style: solid;
             border-color: var(--success);
@@ -191,15 +182,14 @@
             box-shadow: 0 0 8px rgba(46, 204, 113, 0.4);
         }
 
-        /* Level 2 Hiding Mechanism */
+        /* --- THE DISPLAY: FLEX FIX FOR LEVEL 2 --- */
         .level-2-row {
-            display: none; /* Hidden by default */
+            display: none; 
         }
         .level-2-active .level-2-row {
-            display: contents; /* Shows them as grid items smoothly */
+            display: flex; 
         }
 
-        /* Animations */
         @keyframes pop {
             0% { transform: scale(1); }
             50% { transform: scale(1.2); }
@@ -217,11 +207,8 @@
     </div>
 
     <div id="bins-container">
-        <div class="bin" id="vyanjan-bin">
-            <div class="bin-title">Vyanjan (Consonants)</div>
-            </div>
         <div class="bin" id="matra-bin">
-            <div class="bin-title">Matras (Vowels/Modifiers)</div>
+            <div class="bin-title">Drag the Matras to build the Baarahkadi line by line</div>
             </div>
     </div>
 
@@ -231,9 +218,6 @@
     </div>
 
     <script>
-        // --- GAME DATA CONFIGURATION --- //
-
-        // The exact traditional order, tagged with your Level constraints
         const alphabet = [
             {char: 'क', lvl: 1}, {char: 'ख', lvl: 2}, {char: 'ग', lvl: 1}, {char: 'घ', lvl: 2}, 
             {char: 'च', lvl: 1}, {char: 'छ', lvl: 2}, {char: 'ज', lvl: 1}, {char: 'झ', lvl: 2}, 
@@ -246,7 +230,6 @@
         ];
 
         const swaras = [
-            // 'token' is what the student drags. 'matra' is the unicode symbol applied.
             {swar: 'अ', token: 'अ', matra: ''}, 
             {swar: 'आ', token: 'ा', matra: 'ा'}, 
             {swar: 'इ', token: 'ि', matra: 'ि'}, 
@@ -263,46 +246,24 @@
         ];
 
         let score = 0;
-        let isLevel2Active = false;
 
-        // --- INITIALIZATION --- //
         function initGame() {
-            buildBins();
+            buildBin();
             buildGrid();
         }
 
-        function buildBins() {
-            const vBin = document.getElementById('vyanjan-bin');
+        function buildBin() {
             const mBin = document.getElementById('matra-bin');
             
-            // Clear existing Vyanjans
-            const titleHTML = '<div class="bin-title">Vyanjan (Consonants)</div>';
-            vBin.innerHTML = titleHTML;
-
-            // Populate Vyanjan Bin (Only Level 1 initially, or both if Level 2 is active)
-            alphabet.forEach(item => {
-                if(item.lvl === 1 || isLevel2Active) {
-                    let div = document.createElement('div');
-                    div.className = 'draggable';
-                    div.draggable = true;
-                    div.textContent = item.char;
-                    div.dataset.val = item.char;
-                    div.dataset.type = 'vyanjan';
-                    div.addEventListener('dragstart', handleDragStart);
-                    vBin.appendChild(div);
-                }
-            });
-
-            // Populate Matra Bin (Only needed once)
-            if (mBin.children.length === 1) { // 1 because of the title div
+            // Only build Matras once
+            if (mBin.children.length === 1) { 
                 swaras.forEach(s => {
                     let div = document.createElement('div');
                     div.className = 'draggable';
                     div.draggable = true;
                     div.textContent = s.token;
-                    div.dataset.val = s.token; // The token they drag
-                    div.dataset.matra = s.matra; // The actual symbol attached
-                    div.dataset.type = 'matra';
+                    div.dataset.val = s.token; 
+                    div.dataset.matra = s.matra; 
                     div.addEventListener('dragstart', handleDragStart);
                     mBin.appendChild(div);
                 });
@@ -312,7 +273,6 @@
         function buildGrid() {
             const board = document.getElementById('game-board');
             
-            // 1. Build Sticky Header Row
             let spacer = document.createElement('div');
             spacer.className = 'header-spacer';
             board.appendChild(spacer);
@@ -324,26 +284,21 @@
                 board.appendChild(headerCell);
             });
 
-            // 2. Build Rows for all Vyanjans
             alphabet.forEach(item => {
-                // Wrapper for CSS Grid manipulation
                 let rowClass = item.lvl === 2 ? 'level-2-row' : 'level-1-row';
 
-                // First Column: Row Label (e.g., क)
                 let label = document.createElement('div');
                 label.className = `row-label ${rowClass}`;
                 label.textContent = item.char;
                 board.appendChild(label);
 
-                // Next 13 Columns: Drop Zones
                 swaras.forEach(s => {
                     let cell = document.createElement('div');
                     cell.className = `drop-zone ${rowClass}`;
-                    cell.dataset.targetVyanjan = item.char;
+                    cell.dataset.targetVyanjan = item.char; 
                     cell.dataset.targetToken = s.token;
-                    cell.dataset.targetMatra = s.matra; // Unicode logic
+                    cell.dataset.targetMatra = s.matra; 
                     
-                    // Setup Drag and Drop Listeners for the cell
                     cell.addEventListener('dragover', handleDragOver);
                     cell.addEventListener('dragleave', handleDragLeave);
                     cell.addEventListener('drop', handleDrop);
@@ -353,16 +308,14 @@
             });
         }
 
-        // --- DRAG AND DROP LOGIC --- //
         function handleDragStart(e) {
             e.dataTransfer.setData('text/plain', e.target.dataset.val);
-            e.dataTransfer.setData('type', e.target.dataset.type);
             e.dataTransfer.setData('matra', e.target.dataset.matra || '');
-            e.dataTransfer.effectAllowed = 'copy'; // Doesn't move the source button
+            e.dataTransfer.effectAllowed = 'copy'; 
         }
 
         function handleDragOver(e) {
-            e.preventDefault(); // Necessary to allow dropping
+            e.preventDefault(); 
             if (!e.currentTarget.classList.contains('locked')) {
                 e.currentTarget.classList.add('drag-over');
             }
@@ -377,49 +330,24 @@
             const cell = e.currentTarget;
             cell.classList.remove('drag-over');
 
-            if (cell.classList.contains('locked')) return; // Already finished
+            if (cell.classList.contains('locked')) return; 
 
             const draggedVal = e.dataTransfer.getData('text/plain');
-            const draggedType = e.dataTransfer.getData('type');
             const draggedMatra = e.dataTransfer.getData('matra');
 
-            // Logic 1: Dropping a Vyanjan
-            if (draggedType === 'vyanjan') {
-                if (draggedVal === cell.dataset.targetVyanjan) {
-                    // Correct Vyanjan placed
-                    cell.dataset.currentV = draggedVal;
-                    cell.textContent = draggedVal;
-                    cell.classList.add('has-vyanjan');
-                    updateScore(5);
-                } else {
-                    // Wrong Vyanjan
-                    updateScore(-2);
-                    visualError(cell);
-                }
-            } 
-            // Logic 2: Dropping a Matra
-            else if (draggedType === 'matra') {
-                if (!cell.dataset.currentV) {
-                    // Needs Vyanjan first!
-                    visualError(cell);
-                    return;
-                }
-
-                if (draggedVal === cell.dataset.targetToken) {
-                    // Correct Matra placed! Merge them visually.
-                    cell.textContent = cell.dataset.currentV + draggedMatra;
-                    cell.classList.remove('has-vyanjan');
-                    cell.classList.add('locked', 'animate-pop');
-                    updateScore(10);
-                } else {
-                    // Wrong Matra for this column
-                    updateScore(-2);
-                    visualError(cell);
-                }
+            // NEW LOGIC: Only check if the Matra is correct for this column
+            if (draggedVal === cell.dataset.targetToken) {
+                // Combine the Row's Base Letter + The Dropped Matra automatically!
+                cell.textContent = cell.dataset.targetVyanjan + draggedMatra;
+                
+                cell.classList.add('locked', 'animate-pop');
+                updateScore(10);
+            } else {
+                updateScore(-2);
+                visualError(cell);
             }
         }
 
-        // --- HELPERS & LEVEL PROGRESSION --- //
         function updateScore(points) {
             score += points;
             document.getElementById('score').textContent = score;
@@ -428,23 +356,15 @@
         function visualError(element) {
             element.style.backgroundColor = '#ff7675';
             setTimeout(() => {
-                element.style.backgroundColor = ''; // Reset
+                element.style.backgroundColor = ''; 
             }, 300);
         }
 
         function startLevel2() {
-            isLevel2Active = true;
-            // Reveal Level 2 Rows seamlessly via CSS
             document.getElementById('game-board').classList.add('level-2-active');
-            
-            // Rebuild the bins to include Level 2 letters (Kha, Gha, etc.)
-            buildBins(); 
-            
-            // Hide the button
             document.getElementById('btn-level2').style.display = 'none';
         }
 
-        // Start everything on load
         window.onload = initGame;
 
     </script>
