@@ -122,10 +122,11 @@
 
         .grid-table {
             display: grid;
-            grid-template-columns: 60px repeat(13, 60px); 
+            /* Changed to exactly 13 columns. No extra row-label column! */
+            grid-template-columns: repeat(13, 60px); 
             gap: 5px;
             padding-bottom: 50px; 
-            justify-content: center; /* Centers the grid on large screens */
+            justify-content: center; 
         }
 
         .swar-header {
@@ -138,18 +139,6 @@
             text-align: center;
             padding: 10px 0;
             border-bottom: 3px solid var(--text-dark);
-            color: var(--text-dark);
-        }
-        .header-spacer { position: sticky; top: 0; background: var(--bg-color); z-index: 10; border-bottom: 3px solid var(--text-dark); }
-
-        .row-label {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            background-color: #dfe6e9;
-            border-radius: 5px;
             color: var(--text-dark);
         }
 
@@ -168,6 +157,13 @@
             transition: all 0.2s ease;
         }
 
+        /* Styling for the automatically filled 'A' column */
+        .drop-zone.base-letter {
+            background-color: #dfe6e9;
+            border: 2px solid #bdc3c7;
+            cursor: default;
+        }
+
         .drop-zone.drag-over {
             background-color: #dff9fb;
             border-color: var(--primary);
@@ -182,7 +178,6 @@
             box-shadow: 0 0 8px rgba(46, 204, 113, 0.4);
         }
 
-        /* --- THE DISPLAY: FLEX FIX FOR LEVEL 2 --- */
         .level-2-row {
             display: none; 
         }
@@ -208,7 +203,7 @@
 
     <div id="bins-container">
         <div class="bin" id="matra-bin">
-            <div class="bin-title">Drag the Matras to build the Baarahkadi line by line</div>
+            <div class="bin-title">Find the correct Matra to build the Baarahkadi line by line</div>
             </div>
     </div>
 
@@ -255,9 +250,14 @@
         function buildBin() {
             const mBin = document.getElementById('matra-bin');
             
-            // Only build Matras once
             if (mBin.children.length === 1) { 
-                swaras.forEach(s => {
+                // 1. Filter out the 'अ' token so it isn't draggable
+                let draggableMatras = swaras.filter(s => s.swar !== 'अ');
+                
+                // 2. Shuffle the array randomly!
+                draggableMatras.sort(() => Math.random() - 0.5);
+
+                draggableMatras.forEach(s => {
                     let div = document.createElement('div');
                     div.className = 'draggable';
                     div.draggable = true;
@@ -272,11 +272,8 @@
 
         function buildGrid() {
             const board = document.getElementById('game-board');
-            
-            let spacer = document.createElement('div');
-            spacer.className = 'header-spacer';
-            board.appendChild(spacer);
 
+            // Build headers
             swaras.forEach(s => {
                 let headerCell = document.createElement('div');
                 headerCell.className = 'swar-header';
@@ -284,24 +281,28 @@
                 board.appendChild(headerCell);
             });
 
+            // Build rows
             alphabet.forEach(item => {
                 let rowClass = item.lvl === 2 ? 'level-2-row' : 'level-1-row';
-
-                let label = document.createElement('div');
-                label.className = `row-label ${rowClass}`;
-                label.textContent = item.char;
-                board.appendChild(label);
 
                 swaras.forEach(s => {
                     let cell = document.createElement('div');
                     cell.className = `drop-zone ${rowClass}`;
-                    cell.dataset.targetVyanjan = item.char; 
-                    cell.dataset.targetToken = s.token;
-                    cell.dataset.targetMatra = s.matra; 
                     
-                    cell.addEventListener('dragover', handleDragOver);
-                    cell.addEventListener('dragleave', handleDragLeave);
-                    cell.addEventListener('drop', handleDrop);
+                    // NEW: If it's the 'A' column, pre-fill it and lock it
+                    if (s.swar === 'अ') {
+                        cell.textContent = item.char;
+                        cell.classList.add('base-letter', 'locked'); // Pre-filled
+                    } else {
+                        // Otherwise, make it a drop zone
+                        cell.dataset.targetVyanjan = item.char; 
+                        cell.dataset.targetToken = s.token;
+                        cell.dataset.targetMatra = s.matra; 
+                        
+                        cell.addEventListener('dragover', handleDragOver);
+                        cell.addEventListener('dragleave', handleDragLeave);
+                        cell.addEventListener('drop', handleDrop);
+                    }
 
                     board.appendChild(cell);
                 });
@@ -335,11 +336,8 @@
             const draggedVal = e.dataTransfer.getData('text/plain');
             const draggedMatra = e.dataTransfer.getData('matra');
 
-            // NEW LOGIC: Only check if the Matra is correct for this column
             if (draggedVal === cell.dataset.targetToken) {
-                // Combine the Row's Base Letter + The Dropped Matra automatically!
                 cell.textContent = cell.dataset.targetVyanjan + draggedMatra;
-                
                 cell.classList.add('locked', 'animate-pop');
                 updateScore(10);
             } else {
