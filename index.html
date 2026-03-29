@@ -52,23 +52,30 @@
         .stats-container {
             display: flex;
             gap: 20px; 
+            width: 100%;
+            justify-content: center;
         }
 
-        .stat { font-size: 1.2rem; font-weight: bold; color: var(--text-dark); }
+        .stat { font-size: 1.5rem; font-weight: bold; color: var(--text-dark); }
         .stat span { color: var(--primary); }
         
         button {
-            padding: 10px 20px;
-            font-size: 1rem;
+            padding: 12px 24px;
+            font-size: 1.2rem;
             font-weight: bold;
             background-color: var(--primary);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             transition: 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        button:hover { background-color: #357abd; }
+        button:hover { background-color: #357abd; transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+
+        .btn-secondary { background-color: #95a5a6; }
+        .btn-secondary:hover { background-color: #7f8c8d; }
 
         #bins-container {
             display: flex;
@@ -196,16 +203,55 @@
         }
         .animate-pop { animation: pop 0.3s ease; }
 
+        /* --- POPUP MODAL STYLES --- */
+        #modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #modal-overlay.hidden { display: none; }
+        
+        #modal-box {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+            animation: pop 0.4s ease;
+        }
+
+        #modal-title { margin-top: 0; color: var(--primary); font-size: 2.2rem; }
+        .modal-text { font-size: 1.4rem; font-weight: bold; margin: 15px 0; color: var(--text-dark); }
+        .highlight { color: var(--success); font-size: 1.8rem; }
+        .modal-buttons { margin-top: 30px; display: flex; flex-direction: column; gap: 15px; }
+
     </style>
 </head>
 <body>
+
+    <div id="modal-overlay" class="hidden">
+        <div id="modal-box">
+            <h2 id="modal-title">Level 1 Complete!</h2>
+            <p class="modal-text">Points: <span id="modal-score" class="highlight">0</span></p>
+            <p class="modal-text">Time Elapsed: <span id="modal-time" class="highlight">00:00</span></p>
+            <div class="modal-buttons" id="modal-button-container">
+                <button id="btn-continue" onclick="startLevel2FromModal()">Continue to Level 2 (Deergha)</button>
+                <button id="btn-end" onclick="showFinalScreen()" class="btn-secondary">End Game</button>
+            </div>
+        </div>
+    </div>
 
     <div id="top-bar">
         <div class="stats-container">
             <div class="stat">Points: <span id="score">0</span></div>
             <div class="stat">Time: <span id="timer">00:00</span></div>
         </div>
-        <button id="btn-level2" onclick="startLevel2()">Start Level 2 (Deergha)</button>
     </div>
 
     <div id="bins-container">
@@ -220,7 +266,6 @@
     </div>
 
     <script>
-        // Added 'ण' to Level 2 right after 'ढ'
         const alphabet = [
             {char: 'क', lvl: 1}, {char: 'ख', lvl: 2}, {char: 'ग', lvl: 1}, {char: 'घ', lvl: 2}, 
             {char: 'च', lvl: 1}, {char: 'छ', lvl: 2}, {char: 'ज', lvl: 1}, {char: 'झ', lvl: 2}, 
@@ -251,6 +296,12 @@
         let score = 0;
         let timerInterval;
         let elapsedSeconds = 0;
+        let isLevel2Active = false;
+        
+        // Tracking Completion
+        let completedCells = 0;
+        const LEVEL_1_TOTAL = 19 * 12; // 19 Level-1 rows, 12 draggable drop zones per row = 228
+        const FULL_GAME_TOTAL = 34 * 12; // 34 Total rows, 12 drop zones per row = 408
 
         function initGame() {
             buildBin();
@@ -297,7 +348,6 @@
         function buildGrid() {
             const board = document.getElementById('game-board');
 
-            // Build headers
             swaras.forEach(s => {
                 let headerCell = document.createElement('div');
                 headerCell.className = 'swar-header';
@@ -305,7 +355,6 @@
                 board.appendChild(headerCell);
             });
 
-            // Build rows
             alphabet.forEach(item => {
                 let rowClass = item.lvl === 2 ? 'level-2-row' : 'level-1-row';
 
@@ -333,7 +382,6 @@
 
         function handleDragStart(e) {
             e.dataTransfer.setData('text/plain', e.target.dataset.val);
-            e.dataTransfer.setData('matra', e.target.dataset.matra || '');
             e.dataTransfer.effectAllowed = 'copy'; 
         }
 
@@ -356,15 +404,35 @@
             if (cell.classList.contains('locked')) return; 
 
             const draggedVal = e.dataTransfer.getData('text/plain');
-            const draggedMatra = e.dataTransfer.getData('matra');
 
             if (draggedVal === cell.dataset.targetToken) {
-                cell.textContent = cell.dataset.targetVyanjan + draggedMatra;
+                // THE FIX IS APPLIED HERE:
+                cell.textContent = cell.dataset.targetVyanjan + cell.dataset.targetMatra;
                 cell.classList.add('locked', 'animate-pop');
                 updateScore(2); 
+                
+                // Track completion progress
+                completedCells++;
+                checkLevelProgress();
+
             } else {
                 updateScore(-1); 
                 visualError(cell);
+            }
+        }
+
+        function checkLevelProgress() {
+            if (completedCells === LEVEL_1_TOTAL && !isLevel2Active) {
+                // Level 1 Complete
+                clearInterval(timerInterval);
+                document.getElementById('modal-title').textContent = "Level 1 Complete!";
+                document.getElementById('modal-score').textContent = score;
+                document.getElementById('modal-time').textContent = document.getElementById('timer').textContent;
+                document.getElementById('modal-overlay').classList.remove('hidden');
+
+            } else if (completedCells === FULL_GAME_TOTAL) {
+                // Entire Game Complete
+                showFinalScreen();
             }
         }
 
@@ -380,9 +448,26 @@
             }, 300);
         }
 
-        function startLevel2() {
+        // --- MODAL BUTTON FUNCTIONS --- //
+        function startLevel2FromModal() {
+            // Hide modal, expand grid, resume timer
+            document.getElementById('modal-overlay').classList.add('hidden');
             document.getElementById('game-board').classList.add('level-2-active');
-            document.getElementById('btn-level2').style.display = 'none';
+            isLevel2Active = true;
+            startTimer();
+        }
+
+        function showFinalScreen() {
+            clearInterval(timerInterval);
+            document.getElementById('modal-title').textContent = "Game Complete!";
+            document.getElementById('modal-score').textContent = score;
+            document.getElementById('modal-time').textContent = document.getElementById('timer').textContent;
+            
+            // Replace the Continue/End buttons with a Play Again button
+            document.getElementById('modal-button-container').innerHTML = 
+                '<button onclick="location.reload()">Play Again</button>';
+            
+            document.getElementById('modal-overlay').classList.remove('hidden');
         }
 
         window.onload = initGame;
