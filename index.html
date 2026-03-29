@@ -39,6 +39,34 @@
             overflow: hidden;
         }
 
+        /* --- FORCE LANDSCAPE OVERLAY --- */
+        #landscape-warning {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--primary);
+            color: white;
+            z-index: 99999;
+            text-align: center;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #landscape-warning h2 { font-size: 2rem; margin-bottom: 10px; }
+        #landscape-warning p { font-size: 1.2rem; }
+        .rotate-icon { font-size: 4rem; margin-bottom: 20px; animation: spin 2s infinite linear; }
+        
+        @keyframes spin { 100% { transform: rotate(90deg); } }
+
+        /* Trigger warning ONLY on portrait mode on mobile screens */
+        @media screen and (max-width: 900px) and (orientation: portrait) {
+            #landscape-warning { display: flex; }
+            #top-bar, #bins-container, #grid-wrapper { display: none !important; } /* Hide game entirely */
+        }
+        /* ------------------------------- */
+
         #top-bar {
             background-color: #fff;
             padding: 10px 20px;
@@ -235,6 +263,12 @@
 </head>
 <body>
 
+    <div id="landscape-warning">
+        <div class="rotate-icon">📱</div>
+        <h2>Please Rotate Your Device!</h2>
+        <p>This game needs a wider screen. Turn your phone sideways (Landscape mode) to play.</p>
+    </div>
+
     <div id="modal-overlay" class="hidden">
         <div id="modal-box">
             <h2 id="modal-title">Level 1 Complete!</h2>
@@ -406,12 +440,10 @@
             const draggedVal = e.dataTransfer.getData('text/plain');
 
             if (draggedVal === cell.dataset.targetToken) {
-                // THE FIX IS APPLIED HERE:
                 cell.textContent = cell.dataset.targetVyanjan + cell.dataset.targetMatra;
                 cell.classList.add('locked', 'animate-pop');
                 updateScore(2); 
                 
-                // Track completion progress
                 completedCells++;
                 checkLevelProgress();
 
@@ -423,7 +455,6 @@
 
         function checkLevelProgress() {
             if (completedCells === LEVEL_1_TOTAL && !isLevel2Active) {
-                // Level 1 Complete
                 clearInterval(timerInterval);
                 document.getElementById('modal-title').textContent = "Level 1 Complete!";
                 document.getElementById('modal-score').textContent = score;
@@ -431,7 +462,6 @@
                 document.getElementById('modal-overlay').classList.remove('hidden');
 
             } else if (completedCells === FULL_GAME_TOTAL) {
-                // Entire Game Complete
                 showFinalScreen();
             }
         }
@@ -448,9 +478,7 @@
             }, 300);
         }
 
-        // --- MODAL BUTTON FUNCTIONS --- //
         function startLevel2FromModal() {
-            // Hide modal, expand grid, resume timer
             document.getElementById('modal-overlay').classList.add('hidden');
             document.getElementById('game-board').classList.add('level-2-active');
             isLevel2Active = true;
@@ -463,7 +491,6 @@
             document.getElementById('modal-score').textContent = score;
             document.getElementById('modal-time').textContent = document.getElementById('timer').textContent;
             
-            // Replace the Continue/End buttons with a Play Again button
             document.getElementById('modal-button-container').innerHTML = 
                 '<button onclick="location.reload()">Play Again</button>';
             
