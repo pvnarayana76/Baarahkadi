@@ -58,6 +58,15 @@
         #landscape-warning p { font-size: 1.2rem; }
         .rotate-icon { font-size: 4rem; margin-bottom: 20px; animation: spin 2s infinite linear; }
         
+        .landscape-btn {
+            margin-top: 20px; 
+            font-size: 1.5rem; 
+            padding: 15px 30px; 
+            background-color: var(--success);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .landscape-btn:hover { background-color: #27ae60; }
+
         @keyframes spin { 100% { transform: rotate(90deg); } }
 
         /* Trigger warning ONLY on portrait mode on mobile screens */
@@ -265,8 +274,16 @@
 
     <div id="landscape-warning">
         <div class="rotate-icon">📱</div>
-        <h2>Please Rotate Your Device!</h2>
-        <p>This game needs a wider screen. Turn your phone sideways (Landscape mode) to play.</p>
+        <h2>Wider Screen Needed!</h2>
+        <p>This game requires a landscape view.</p>
+        
+        <button class="landscape-btn" onclick="forceLandscape()">
+            Rotate to Landscape
+        </button>
+        
+        <p style="font-size: 0.9rem; margin-top: 20px; opacity: 0.8;">
+            (If the button doesn't work, turn on Auto-Rotate and manually turn your phone.)
+        </p>
     </div>
 
     <div id="modal-overlay" class="hidden">
@@ -332,15 +349,38 @@
         let elapsedSeconds = 0;
         let isLevel2Active = false;
         
-        // Tracking Completion
         let completedCells = 0;
-        const LEVEL_1_TOTAL = 19 * 12; // 19 Level-1 rows, 12 draggable drop zones per row = 228
-        const FULL_GAME_TOTAL = 34 * 12; // 34 Total rows, 12 drop zones per row = 408
+        const LEVEL_1_TOTAL = 19 * 12; 
+        const FULL_GAME_TOTAL = 34 * 12; 
 
         function initGame() {
             buildBin();
             buildGrid();
             startTimer(); 
+        }
+
+        // --- FORCE LANDSCAPE FUNCTION --- //
+        async function forceLandscape() {
+            try {
+                const elem = document.documentElement;
+                
+                // Step 1: Request Fullscreen Mode
+                if (elem.requestFullscreen) {
+                    await elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) { /* Safari */
+                    await elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { /* IE11 */
+                    await elem.msRequestFullscreen();
+                }
+
+                // Step 2: Force the screen to lock in Landscape
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock("landscape");
+                }
+            } catch (err) {
+                console.warn("Fullscreen or Rotation failed:", err);
+                alert("Please turn on your phone's Auto-Rotate setting and turn it sideways physically!");
+            }
         }
 
         function startTimer() {
@@ -363,7 +403,6 @@
             if (mBin.children.length === 1) { 
                 let draggableMatras = swaras.filter(s => s.swar !== 'अ');
                 
-                // Shuffle the array randomly
                 draggableMatras.sort(() => Math.random() - 0.5);
 
                 draggableMatras.forEach(s => {
@@ -440,6 +479,7 @@
             const draggedVal = e.dataTransfer.getData('text/plain');
 
             if (draggedVal === cell.dataset.targetToken) {
+                // Combine the Row's Base Letter + The Dropped Matra automatically!
                 cell.textContent = cell.dataset.targetVyanjan + cell.dataset.targetMatra;
                 cell.classList.add('locked', 'animate-pop');
                 updateScore(2); 
